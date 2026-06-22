@@ -4,36 +4,28 @@ const SHIKI_BASE = 'https://shikimori.one';
 const animeListContainer = document.getElementById('anime-list');
 const searchInput = document.getElementById('search-input');
 const genreFilterList = document.getElementById('genre-filter-list');
-const yearFilterList = document.getElementById('year-filter-list');
 const topTagsContainer = document.getElementById('top-tags');
 const featuredSection = document.getElementById('featured-section');
-const modal = document.getElementById('player-modal');
-const playerTitle = document.getElementById('player-title');
-const closeBtn = document.getElementById('close-player');
 
-let allAnime = [];
-let selectedGenres = new Set();
-let selectedYears = new Set();
-const FAVORITES_KEY = 'anix_favorites';
-let favoriteIds = new Set(JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]').map(String));
+let allAnime = []; 
+let searchResults = [];
+let isSearchingMode = false;
 
-// Скролл-переменные
 let currentPage = 1;
 const animePerPage = 30;
 let isLoading = false;
 let hasMoreAnime = true;
 let currentSearchQuery = '';
 
-function isFavorite(id) { return favoriteIds.has(String(id)); }
-
 function renderSkeletons(clear = false) {
+    if (!animeListContainer) return;
     if (clear) animeListContainer.innerHTML = '';
     let skeletonHtml = '';
     for (let i = 0; i < 12; i++) {
         skeletonHtml += `
             <div class="flex flex-col gap-3 animate-pulse">
-                <div class="w-full aspect-[3/4] bg-zinc-900 rounded-2xl"></div>
-                <div class="h-4 bg-zinc-900 rounded-md w-3/4"></div>
+                <div class="w-full aspect-[3/4] bg-zinc-900/60 rounded-2xl"></div>
+                <div class="h-4 bg-zinc-900/40 rounded-md w-3/4"></div>
             </div>
         `;
     }
@@ -41,9 +33,12 @@ function renderSkeletons(clear = false) {
 }
 
 async function fetchAnime(searchQuery = '', isNewSearch = false) {
+    if (!animeListContainer) return;
     if (isLoading || (!hasMoreAnime && !isNewSearch)) return;
     isLoading = true;
     currentSearchQuery = searchQuery;
+
+    isSearchingMode = searchQuery.trim() !== '';
 
     if (isNewSearch) {
         currentPage = 1;
@@ -55,7 +50,7 @@ async function fetchAnime(searchQuery = '', isNewSearch = false) {
 
     try {
         let url = `${API_URL}?limit=${animePerPage}&page=${currentPage}`;
-        if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
+        if (isSearchingMode) url += `&search=${encodeURIComponent(searchQuery)}`;
 
         const response = await fetch(url);
         if (!response.ok) throw new Error('Ошибка бэкенда');
@@ -68,12 +63,19 @@ async function fetchAnime(searchQuery = '', isNewSearch = false) {
             hasMoreAnime = false;
         }
 
-        if (currentPage === 1) {
-            allAnime = newAnimeList;
-            populateFilters(allAnime);
-            renderFeaturedSection(allAnime);
+        if (isSearchingMode) {
+            if (currentPage === 1) searchResults = newAnimeList;
+            else searchResults = [...searchResults, ...newAnimeList];
         } else {
-            allAnime = [...allAnime, ...newAnimeList];
+            if (currentPage === 1) {
+                allAnime = newAnimeList;
+                // Сохраняем кэш для страницы деталей
+                sessionStorage.setItem('anix_allAnime', JSON.stringify(allAnime));
+                populateFilters(allAnime);
+                renderFeaturedSection(allAnime);
+            } else {
+                allAnime = [...allAnime, ...newAnimeList];
+            }
         }
 
         applyFilters();
@@ -89,8 +91,9 @@ async function fetchAnime(searchQuery = '', isNewSearch = false) {
         isLoading = false;
         const oldLoader = document.getElementById('scroll-loader');
         if (oldLoader) oldLoader.remove();
+        
         if (hasMoreAnime) {
-            animeListContainer.insertAdjacentHTML('beforeend', `<div id="scroll-loader" class="col-span-full text-center py-6 text-zinc-600 text-xs animate-pulse">Загрузка релизов...</div>`);
+            animeListContainer.insertAdjacentHTML('beforeend', `<div id="scroll-loader" class="col-span-full text-center py-6 text-zinc-600 text-xs animate-pulse font-medium">Загрузка релизов...</div>`);
         }
     }
 }
@@ -109,132 +112,63 @@ function createAnimeCard(anime, index) {
                 ★ ${anime.score}
             </div>
             <div class="p-3.5 z-10">
-                <p class="text-[9px] text-zinc-400 font-bold uppercase tracking-widest mb-0.5">${anime.kind.toUpperCase()}</p>
+                <p class="text-[9px] text-zinc-400 font-bold uppercase tracking-widest mb-0.5">${anime.kind ? anime.kind.toUpperCase() : 'TV'}</p>
                 <h3 class="font-bold text-zinc-100 text-sm leading-tight line-clamp-2">${anime.russian || anime.name}</h3>
             </div>
         </div>
     `;
-    card.addEventListener('click', () => openPlayerModal(anime));
+    card.addEventListener('click', () => {
+        location.href = `anime.html?id=${anime.id}`;
+    });
     animeListContainer.appendChild(card);
 }
 
 function renderFeaturedSection(list) {
-    if (!featuredSection) return;
-    const topAnime = list.find(a => parseFloat(a.score) >= 8.5);
-    if (!topAnime) {
-        featuredSection.classList.add('hidden');
-        return;
-    }
-    featuredSection.classList.remove('hidden');
+    if (!featuredSection || !list.length) return;
+    const topAnime = list.find(a => parseFloat(a.score) >= 8.0) || list[0];
+    if (!topAnime) return;
+    
     const posterUrl = `https://images.weserv.nl/?url=${encodeURIComponent(SHIKI_BASE + topAnime.image.original)}`;
     
     featuredSection.innerHTML = `
         <div class="flex flex-col md:flex-row gap-6 items-center p-2">
-            <img src="${posterUrl}" class="w-32 h-44 object-cover rounded-xl border border-zinc-800 shadow-md shrink-0">
+            <img src="${posterUrl}" class="w-28 h-40 object-cover rounded-xl border border-zinc-800 shadow-md shrink-0">
             <div class="flex-1 text-center md:text-left">
-                <span class="bg-indigo-500/10 text-indigo-400 text-[10px] font-bold px-2.5 py-1 rounded-md border border-indigo-500/20 uppercase tracking-widest">Хит сезона</span>
-                <h2 class="text-2xl font-black text-white mt-2">${topAnime.russian || topAnime.name}</h2>
-                <p class="text-zinc-400 text-xs mt-1 line-clamp-3">Популярный релиз с высоким рейтингом зрителей (★ ${topAnime.score}). Нажмите кнопку ниже для мгновенного просмотра.</p>
-                <button id="play-featured" class="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-all active:scale-95">Смотреть сейчас</button>
+                <span class="bg-indigo-500/10 text-indigo-400 text-[10px] font-bold px-2.5 py-1 rounded-md border border-indigo-500/20 uppercase tracking-widest">Рекомендация</span>
+                <h2 class="text-xl font-black text-white mt-2">${topAnime.russian || topAnime.name}</h2>
+                <p class="text-zinc-400 text-xs mt-1 line-clamp-2">Популярный релиз с высоким рейтингом зрителей (★ ${topAnime.score}). Доступен для просмотра прямо сейчас.</p>
+                <button id="play-featured" class="mt-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all active:scale-95">Смотреть</button>
             </div>
         </div>
     `;
-    document.getElementById('play-featured').onclick = () => openPlayerModal(topAnime);
+    document.getElementById('play-featured').onclick = () => {
+        location.href = `anime.html?id=${topAnime.id}`;
+    };
 }
 
 function populateFilters(list) {
-    if (!genreFilterList || !yearFilterList || !topTagsContainer) return;
+    if (!topTagsContainer || !list.length) return;
     const genres = new Set();
-    const years = new Set();
-    
     list.forEach(a => {
         if (a.genres) a.genres.forEach(g => genres.add(typeof g === 'string' ? g : g.name));
-        if (a.aired_on) { const y = a.aired_on.split('-')[0]; if(y) years.add(y); }
     });
-
-    // Отрендерим топ тегов (первые 6 жанров)
     topTagsContainer.innerHTML = '';
-    Array.from(genres).slice(0, 6).forEach(g => {
-        topTagsContainer.insertAdjacentHTML('beforeend', `<button class="filter-chip bg-zinc-900 border border-zinc-800 text-zinc-400 px-3 py-1.5 rounded-xl text-xs font-medium hover:border-zinc-700 transition-all" data-type="genre" data-value="${g}">${g}</button>`);
+    Array.from(genres).slice(0, 8).forEach(g => {
+        topTagsContainer.insertAdjacentHTML('beforeend', `<button class="filter-chip bg-zinc-900 border border-zinc-800 text-zinc-400 px-3 py-1.5 rounded-xl text-xs font-medium hover:border-zinc-700 transition-all" data-value="${g}">${g}</button>`);
     });
 }
 
 function applyFilters() {
+    if (!animeListContainer) return;
     animeListContainer.innerHTML = '';
-    allAnime.forEach((anime, index) => createAnimeCard(anime, index));
-}
-
-/**
- * Корректный запуск видеобалансера Kinobox
- */
-function openPlayerModal(anime) {
-    playerTitle.textContent = anime.russian || anime.name;
+    const listToRender = isSearchingMode ? searchResults : allAnime;
     
-    // Очищаем контейнер плеера перед новым запуском
-    const playerContainer = document.getElementById('kinobox-player');
-    if (playerContainer) playerContainer.innerHTML = '';
-
-    // Показываем модальное окно
-    modal.classList.remove('hidden');
-    setTimeout(() => {
-        modal.classList.remove('opacity-0');
-        modal.querySelector('.transform').classList.remove('scale-95');
-        
-        try {
-            // Инициализируем Kinobox строго после того, как контейнер стал видимым
-            new kBox('#kinobox-player', {
-                search: { 
-                    shikimori: String(anime.id) 
-                },
-                ui: { 
-                    theme: 'dark' // Темная премиум-тема под наш дизайн
-                },
-                players: {
-                    // Включаем все доступные пиратские базы данных для максимальной заполненности
-                    kodik: { enable: true },
-                    vibix: { enable: true },
-                    alloha: { enable: true },
-                    collaps: { enable: true },
-                    tabus: { enable: true }
-                }
-            }).init();
-        } catch (e) {
-            console.error("Ошибка инициализации Kinobox:", e);
-            // Резервный вариант, если скрипт Kinobox заблокирован или упал
-            if (playerContainer) {
-                playerContainer.innerHTML = `
-                    <div class="w-full h-full flex flex-col items-center justify-center bg-zinc-950 p-6 text-center">
-                        <p class="text-red-400 font-bold text-sm">Внешний видеобалансер недоступен</p>
-                        <p class="text-xs text-zinc-500 mt-1 max-w-md">Попробуйте открыть плеер напрямую через базу Kodik или отключите защитные расширения браузера (AdBlock).</p>
-                        <a href="https://kodik.biz/find-player?shikimori=${anime.id}" target="_blank" class="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-4 py-2 rounded-xl font-bold transition-all">
-                            Смотреть на зеркале донора
-                        </a>
-                    </div>
-                `;
-            }
-        }
-    }, 50);
-    
-    document.body.style.overflow = 'hidden';
+    if (listToRender.length === 0 && isSearchingMode) {
+        animeListContainer.innerHTML = `<div class="col-span-full text-center py-20 text-zinc-500 text-sm">Ничего не найдено по запросу "${currentSearchQuery}"</div>`;
+        return;
+    }
+    listToRender.forEach((anime, index) => createAnimeCard(anime, index));
 }
-
-/**
- * Закрытие плеера с полной очисткой потоков (чтобы звук не шел на фоне)
- */
-function closePlayerModal() {
-    modal.classList.add('opacity-0');
-    modal.querySelector('.transform').classList.add('scale-95');
-    
-    setTimeout(() => {
-        const playerContainer = document.getElementById('kinobox-player');
-        if (playerContainer) playerContainer.innerHTML = ''; // Жестко глушим видеопоток
-        modal.classList.add('hidden');
-        document.body.style.overflow = '';
-    }, 300);
-}
-
-if (closeBtn) closeBtn.addEventListener('click', closePlayerModal);
-if (modal) modal.addEventListener('click', (e) => { if (e.target === modal) closePlayerModal(); });
 
 function handleScroll() {
     if (!hasMoreAnime || isLoading) return;
@@ -243,15 +177,14 @@ function handleScroll() {
     }
 }
 
-if (searchInput) {
-    let timer = null;
-    searchInput.addEventListener('input', e => {
-        clearTimeout(timer);
-        timer = setTimeout(() => fetchAnime(e.target.value.trim(), true), 400);
-    });
-}
-
 document.addEventListener('DOMContentLoaded', () => {
+    if (searchInput) {
+        let timer = null;
+        searchInput.addEventListener('input', e => {
+            clearTimeout(timer);
+            timer = setTimeout(() => fetchAnime(e.target.value.trim(), true), 400);
+        });
+    }
     window.addEventListener('scroll', handleScroll);
     fetchAnime('', true);
 });
