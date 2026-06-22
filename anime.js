@@ -32,36 +32,22 @@ function renderDetail(anime) {
         ).join('');
     }
 
-// МУЛЬТИПЛЕЕР С ПЕРЕДАЧЕЙ URL (УБИРАЕТ ОШИБКУ INVALID URL)
+// СТАБИЛЬНЫЙ МУЛЬТИПЛЕЕР ЧЕРЕЗ API KINOBOX И ЗЕРКАЛА
     const playerContainer = document.getElementById('kinobox-player');
     if (playerContainer) {
-        // Кодируем текущий URL страницы для плеера
-        const currentHref = encodeURIComponent(window.location.href);
-
         playerContainer.innerHTML = `
             <div class="w-full h-full flex flex-col gap-3">
                 <div class="flex flex-wrap gap-2 mb-1">
-                    <button id="btn-kinobox" class="bg-indigo-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg border border-indigo-500 shadow-md transition-all">Плеер #1 (Kinobox Рабочий)</button>
+                    <button id="btn-kinobox" class="bg-indigo-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg border border-indigo-500 shadow-md transition-all">Плеер #1 (Kinobox)</button>
                     <button id="btn-kodik" class="bg-zinc-900 text-zinc-400 text-xs font-medium px-3 py-1.5 rounded-lg border border-zinc-800 hover:border-zinc-700 transition-all">Плеер #2 (Kodik Альтернатива)</button>
                     <button id="btn-collaps" class="bg-zinc-900 text-zinc-400 text-xs font-medium px-3 py-1.5 rounded-lg border border-zinc-800 hover:border-zinc-700 transition-all">Плеер #3 (Collaps Зеркало)</button>
                 </div>
-                <div class="w-full flex-1 aspect-video rounded-xl overflow-hidden bg-black border border-zinc-800">
-                    <iframe 
-                        id="universal-player"
-                        src="https://kinobox.in/player?shikimori=${anime.id}&href=${currentHref}" 
-                        width="100%" 
-                        height="100%" 
-                        frameborder="0" 
-                        allowfullscreen 
-                        allow="autoplay; encrypted-media"
-                        class="w-full h-full"
-                        style="background: #000;"
-                    ></iframe>
-                </div>
+                <div id="player-view-root" class="w-full flex-1 aspect-video rounded-xl overflow-hidden bg-black border border-zinc-800">
+                    </div>
             </div>
         `;
 
-        const playerFrame = document.getElementById('universal-player');
+        const viewRoot = document.getElementById('player-view-root');
         const btnKinobox = document.getElementById('btn-kinobox');
         const btnKodik = document.getElementById('btn-kodik');
         const btnCollaps = document.getElementById('btn-collaps');
@@ -72,11 +58,38 @@ function renderDetail(anime) {
             });
         };
 
-        if (playerFrame) {
+        // Функция для загрузки Kinobox через официальный веб-скрипт (без багов iframe)
+        const loadKinobox = () => {
+            if (!viewRoot) return;
+            viewRoot.innerHTML = `<div class="kinobox_player"></div>`;
+            
+            // Удаляем старый скрипт, если он был, и создаем новый
+            const oldScript = document.getElementById('kinobox-js');
+            if (oldScript) oldScript.remove();
+
+            const script = document.createElement('script');
+            script.id = 'kinobox-js';
+            script.src = 'https://kinobox.in/player.js';
+            script.async = true;
+            script.onload = () => {
+                if (window.kbox) {
+                    window.kbox('.kinobox_player', {
+                        search: { shikimori: anime.id },
+                        menu: { default: 'rent' }
+                    });
+                }
+            };
+            document.body.appendChild(script);
+        };
+
+        // По умолчанию загружаем надежный Kinobox
+        loadKinobox();
+
+        if (viewRoot) {
             if (btnKinobox) {
                 btnKinobox.onclick = () => {
                     resetButtons();
-                    playerFrame.src = `https://kinobox.in/player?shikimori=${anime.id}&href=${currentHref}`;
+                    loadKinobox();
                     btnKinobox.className = "bg-indigo-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg border border-indigo-500 shadow-md transition-all";
                 };
             }
@@ -84,7 +97,10 @@ function renderDetail(anime) {
             if (btnKodik) {
                 btnKodik.onclick = () => {
                     resetButtons();
-                    playerFrame.src = `https://player.asb.co/find-player?shikimori=${anime.id}&href=${currentHref}`;
+                    viewRoot.innerHTML = `
+                        <iframe src="https://player.asb.co/find-player?shikimori=${anime.id}" 
+                                width="100%" height="100%" frameborder="0" allowfullscreen class="w-full h-full"></iframe>
+                    `;
                     btnKodik.className = "bg-indigo-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg border border-indigo-500 shadow-md transition-all";
                 };
             }
@@ -92,7 +108,10 @@ function renderDetail(anime) {
             if (btnCollaps) {
                 btnCollaps.onclick = () => {
                     resetButtons();
-                    playerFrame.src = `https://baza-voron.ru/embed/shikimori/${anime.id}`;
+                    viewRoot.innerHTML = `
+                        <iframe src="https://baza-voron.ru/embed/shikimori/${anime.id}" 
+                                width="100%" height="100%" frameborder="0" allowfullscreen class="w-full h-full"></iframe>
+                    `;
                     btnCollaps.className = "bg-indigo-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg border border-indigo-500 shadow-md transition-all";
                 };
             }
