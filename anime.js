@@ -143,20 +143,43 @@ async function init() {
     // УЛЬТИМАТИВНЫЙ И КРАСИВЫЙ ПЛЕЕР:
     // Мы генерируем защищенный iframe, использующий глобальную базу доноров Kodik. 
     // Он работает напрямую без подгрузки внешних скриптов и не боится блокировки домена kinobox.
+   // ИНТЕГРАЦИЯ НА ОСНОВЕ НАЙДЕННОГО РЕПОЗИТОРИЯ
     const playerContainer = document.getElementById('kinobox-player');
     if (playerContainer) {
-        // Протокол kinobox-склейки через их зеркало iframe
-        playerContainer.innerHTML = `
-            <iframe 
-                src="https://kinobox.tv/player?shikimori=${anime.id}" 
-                width="100%" 
-                height="100%" 
-                frameborder="0" 
-                allowfullscreen 
-                allow="autoplay; encrypted-media"
-                class="w-full h-full rounded-2xl"
-            ></iframe>
-        `;
+        playerContainer.innerHTML = '<div class="text-center text-zinc-500 py-12 animate-pulse">Поиск видеопотоков...</div>';
+
+        try {
+            // Стучимся на наш бэкенд за прямыми ссылками
+            const res = await fetch(`https://anix-backend-eight.vercel.app/api/video?shikimori=${anime.id}`);
+            if (!res.ok) throw new Error('Видео не найдено в базе');
+            
+            const videoData = await res.json();
+            
+            // Берем первый доступный перевод и его линк
+            const targetVideo = videoData[0];
+            const videoUrl = targetVideo.link; // Прямая ссылка на незаблокированный плеер-поток
+
+            // Встраиваем защищенную ссылку
+            playerContainer.innerHTML = `
+                <iframe 
+                    src="${videoUrl}" 
+                    width="100%" 
+                    height="100%" 
+                    frameborder="0" 
+                    allowfullscreen 
+                    class="w-full h-full rounded-2xl"
+                    style="background: #000;"
+                ></iframe>
+            `;
+        } catch (err) {
+            console.error(err);
+            playerContainer.innerHTML = `
+                <div class="w-full h-full flex flex-col items-center justify-center bg-zinc-950 p-6 text-center text-xs text-zinc-500">
+                    <p class="text-red-400 font-bold mb-2">Видео временно недоступно для этого тайтла</p>
+                    <p>Попробуйте позже или выберите другой релиз.</p>
+                </div>
+            `;
+        }
     }
 
     // Обработчик для кнопки избранного
