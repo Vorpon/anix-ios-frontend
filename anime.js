@@ -155,45 +155,75 @@ async function fetchDetail(id) {
     return resp.json();
 }
 
-// Инициализирует страницу детализации: извлекает id, загружает данные и вешает события.
+/// Находим функцию init() в самом низу файла anime.js и заменяем её:
 async function init() {
     const id = qs('id');
-    if (!id) return showError('ID аниме не указан.');
-    const container = document.getElementById('anime-details');
+    if (!id) return showError('Идентификатор аниме не задан.');
 
     let anime = null;
+    // Пытаемся восстановить кэш из sessionStorage
     try {
-        const stored = sessionStorage.getItem('anix_allAnime');
-        if (stored) {
-            const list = JSON.parse(stored);
-            anime = list.find(item => String(item.id) === String(id));
+        const cached = sessionStorage.getItem('anix_allAnime');
+        if (cached) {
+            const list = JSON.parse(cached);
+            anime = list.find(a => String(a.id) === String(id));
         }
-    } catch {
-        anime = null;
+    } catch (e) {
+        console.error(e);
     }
 
-    // Если данные не найдены в sessionStorage или не достаточно полны, подгружаем детальный запрос.
-    if (!anime || !anime.genres || !anime.description) {
-        if (container) container.innerHTML = '<div class="text-center text-zinc-500">Загрузка подробностей...</div>';
+    // Если данных в кэше нет, делаем запрос к бэкенду
+    if (!anime) {
+        if (container) container.innerHTML = '<div class="text-center text-zinc-500 py-12 animate-pulse">Загрузка подробностей...</div>';
         try {
             const detail = await fetchDetail(id);
-            anime = Array.isArray(detail) ? (detail[0] || anime) : { ...(anime || {}), ...detail };
+            anime = Array.isArray(detail) ? detail[0] : detail;
         } catch (error) {
             console.error(error);
-            if (!anime) return showError('Не удалось загрузить аниме.');
+            if (!anime) return showError('Не удалось загрузить аниме с сервера.');
         }
     }
 
     if (!anime) return showError('Аниме не найдено.');
+    
+    // Рендерим текстовое описание и постер
     if (container) container.innerHTML = createDetailHTML(anime);
-    const playLink = document.getElementById('play-link');
-    if (playLink) playLink.href = `watch.html?id=${encodeURIComponent(id)}`;
-    const watchPageLink = document.getElementById('watch-page-link');
-    if (watchPageLink) watchPageLink.href = `watch.html?id=${encodeURIComponent(id)}`;
+
+    // ЗАПУСК КИНОТЕАТРА: Инициализируем Kinobox для текущего ID Shikimori
+    try {
+        new kBox('#kinobox-player', {
+            search: { 
+                shikimori: String(anime.id) 
+            },
+            ui: { 
+                theme: 'dark' 
+            },
+            players: {
+                kodik: { enable: true },
+                vibix: { enable: true },
+                alloha: { enable: true },
+                collaps: { enable: true }
+            }
+        }).init();
+    } catch (err) {
+        console.error("Критическая ошибка плеера:", err);
+        document.getElementById('kinobox-player').innerHTML = `
+            <div class="w-full h-full flex flex-col items-center justify-center bg-zinc-950 p-6 text-center text-sm">
+                <p class="text-red-400 font-bold">Скрипт плеера заблокирован</p>
+                <a href="https://kodik.biz/find-player?shikimori=${anime.id}" target="_blank" class="mt-4 bg-indigo-600 px-4 py-2 rounded-xl text-white font-medium">
+                    Открыть внешнее зеркало
+                </a>
+            </div>
+        `;
+    }
+
+    // Ссылки на сторонние ресурсы
     const shikiLink = document.getElementById('shiki-link');
     if (shikiLink) shikiLink.href = `https://shikimori.one${anime.url || ''}`;
+    
     const favoriteDetail = document.getElementById('favorite-detail');
     if (favoriteDetail) {
+        favoriteDetail.textContent = isFavorite(anime.id) ? '★ Уже в избранном' : '☆ Добавить в избранное';
         favoriteDetail.addEventListener('click', () => {
             toggleFavorite(anime.id);
             favoriteDetail.textContent = isFavorite(anime.id) ? '★ Уже в избранном' : '☆ Добавить в избранное';
@@ -201,4 +231,5 @@ async function init() {
     }
 }
 
+// Запуск при загрузке страницы деталей
 window.addEventListener('DOMContentLoaded', init);
