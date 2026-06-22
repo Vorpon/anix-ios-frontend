@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AnixIOS — Избранное</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-black text-white font-sans min-h-screen">
+  <!-- Шапка страницы избранного: возврат в каталог и управление списком. -->
+  <header class="glass-card-strong sticky top-0 z-30 border-b border-zinc-800">
+    <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-4 py-4">
+      <div class="space-y-2">
+        <a href="index.html" class="text-sm text-zinc-400 hover:text-white">← Вернуться к каталогу</a>
+        <h1 class="text-3xl font-extrabold text-white">Избранное</h1>
+        <p class="text-sm text-soft">Сохраняйте лучшие аниме и возвращайтесь к ним мгновенно.</p>
+      </div>
+      <div class="flex gap-3 flex-wrap">
+        <button id="clear-favorites" class="premium-button">Очистить список</button>
+        <a href="index.html" class="rounded-2xl border border-indigo-500 bg-indigo-500/10 px-4 py-3 text-sm text-indigo-300 hover:bg-indigo-500/20">Каталог</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Основной контент страницы: заголовок и сетка карточек избранного. -->
+  <main class="max-w-6xl mx-auto px-4 py-8">
+    <section class="glass-card rounded-[2rem] p-6 mb-6">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <p class="text-xs uppercase tracking-[0.24em] text-accent mb-2">Избранное</p>
+          <h2 class="text-3xl font-semibold text-white">Ваши топ-аниме</h2>
+        </div>
+        <p class="text-sm text-soft">Добавляйте в избранное, чтобы легко найти лучшие серии позже.</p>
+      </div>
+    </section>
+
+    <section id="favorites-list" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5"></section>
+  </main>
+
+  <script src="favorites.js"></script>
+</body>
+</html>

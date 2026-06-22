@@ -1,0 +1,35 @@
+﻿<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AnixIOS — Детали аниме</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-black text-white font-sans min-h-screen">
+  <!-- Шапка страницы деталей аниме: переходы назад, доступ к избранному и кнопка просмотра. -->
+  <header class="glass-card-strong sticky top-0 z-30 border-b border-zinc-800">
+    <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-4 py-4">
+      <div class="space-y-2">
+        <div class="flex flex-wrap items-center gap-3">
+          <a href="index.html" class="text-sm text-zinc-400 hover:text-white">← Вернуться в каталог</a>
+          <a href="favorites.html" class="rounded-full border border-indigo-500/20 bg-indigo-500/10 px-4 py-2 text-sm text-indigo-200 hover:bg-indigo-500/20 transition">Избранное</a>
+        </div>
+        <h1 class="text-4xl font-extrabold text-white">AnixIOS</h1>
+        <p class="text-sm text-soft">Премиум-страница аниме с полноценной информацией о серии.</p>
+      </div>
+      <a id="watch-page-link" href="#" class="premium-button">Перейти к просмотру</a>
+    </div>
+  </header>
+
+  <!-- Контейнер деталей аниме, наполняется динамически через anime.js. -->
+  <main class="max-w-6xl mx-auto px-4 py-8">
+    <div id="anime-details" class="space-y-8 text-zinc-200">
+      <div class="glass-card p-6 text-center text-zinc-400">Загрузка...</div>
+    </div>
+  </main>
+
+  <script src="anime.js"></script>
+</body>
+</html>

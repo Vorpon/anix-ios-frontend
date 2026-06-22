@@ -1,0 +1,69 @@
+﻿/* Базовые стили страницы и плавность прокрутки */
+html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Элегантный тонкий скроллбар */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: #030408;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(99, 102, 241, 0.2);
+    border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(99, 102, 241, 0.4);
+}
+
+/* Глобальный премиальный фон с глубоким неоновым свечением вверху */
+body {
+    min-height: 100vh;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: radial-gradient(circle at top, rgba(79, 70, 229, 0.15), transparent 25%),
+                radial-gradient(circle at 80% 20%, rgba(219, 39, 119, 0.05), transparent 20%),
+                #030408;
+    color: #f1f5f9;
+}
+
+/* Эффект матового стекла для хедера и модалок */
+.ios-blur {
+    background: rgba(3, 4, 8, 0.75);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+
+/* Анимация появления контента */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in {
+    animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Анимация пульсации для скелетонов загрузки */
+@keyframes skeletonPulse {
+    0%, 100% { background-color: rgba(39, 39, 42, 0.4); }
+    50% { background-color: rgba(39, 39, 42, 0.8); }
+}
+
+.skeleton-card {
+    animation: skeletonPulse 1.5s infinite ease-in-out;
+}
+
+/* Кастомные стили для кнопок Kinobox внутри модалки */
+iframe {
+    border-radius: 12px;
+}
