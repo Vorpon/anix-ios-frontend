@@ -32,20 +32,20 @@ function renderDetail(anime) {
         ).join('');
     }
 
-    // МУЛЬТИПЛЕЕР С ЗЕРКАЛАМИ KODIK И KINOBOX
+// ОБНОВЛЕННЫЙ МУЛЬТИПЛЕЕР С ЖИВЫМИ ЗЕРКАЛАМИ
     const playerContainer = document.getElementById('kinobox-player');
     if (playerContainer) {
         playerContainer.innerHTML = `
             <div class="w-full h-full flex flex-col gap-3">
                 <div class="flex flex-wrap gap-2 mb-1">
-                    <button id="btn-kodik" class="bg-indigo-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg border border-indigo-500 shadow-md transition-all">Плеер #1 (Kodik Зеркало)</button>
-                    <button id="btn-kinobox" class="bg-zinc-900 text-zinc-400 text-xs font-medium px-3 py-1.5 rounded-lg border border-zinc-800 hover:border-zinc-700 transition-all">Плеер #2 (Kinobox-Агрегатор)</button>
-                    <button id="btn-collaps" class="bg-zinc-900 text-zinc-400 text-xs font-medium px-3 py-1.5 rounded-lg border border-zinc-800 hover:border-zinc-700 transition-all">Плеер #3 (Collaps)</button>
+                    <button id="btn-kinobox" class="bg-indigo-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg border border-indigo-500 shadow-md transition-all">Плеер #1 (Kinobox Рабочий)</button>
+                    <button id="btn-kodik" class="bg-zinc-900 text-zinc-400 text-xs font-medium px-3 py-1.5 rounded-lg border border-zinc-800 hover:border-zinc-700 transition-all">Плеер #2 (Kodik Альтернатива)</button>
+                    <button id="btn-collaps" class="bg-zinc-900 text-zinc-400 text-xs font-medium px-3 py-1.5 rounded-lg border border-zinc-800 hover:border-zinc-700 transition-all">Плеер #3 (Collaps Зеркало)</button>
                 </div>
                 <div class="w-full flex-1 aspect-video rounded-xl overflow-hidden bg-black border border-zinc-800">
                     <iframe 
                         id="universal-player"
-                        src="https://skif.co/find-player?shikimori=${anime.id}" 
+                        src="https://kinobox.in/player?shikimori=${anime.id}" 
                         width="100%" 
                         height="100%" 
                         frameborder="0" 
@@ -59,8 +59,8 @@ function renderDetail(anime) {
         `;
 
         const playerFrame = document.getElementById('universal-player');
-        const btnKodik = document.getElementById('btn-kodik');
         const btnKinobox = document.getElementById('btn-kinobox');
+        const btnKodik = document.getElementById('btn-kodik');
         const btnCollaps = document.getElementById('btn-collaps');
 
         const resetButtons = () => {
@@ -70,26 +70,29 @@ function renderDetail(anime) {
         };
 
         if (playerFrame) {
-            if (btnKodik) {
-                btnKodik.onclick = () => {
-                    resetButtons();
-                    playerFrame.src = `https://skif.co/find-player?shikimori=${anime.id}`;
-                    btnKodik.className = "bg-indigo-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg border border-indigo-500 shadow-md transition-all";
-                };
-            }
-
             if (btnKinobox) {
                 btnKinobox.onclick = () => {
                     resetButtons();
-                    playerFrame.src = `https://kinobox.tv/player?shikimori=${anime.id}`;
+                    // .in — официальное рабочее зеркало Kinobox вместо .tv
+                    playerFrame.src = `https://kinobox.in/player?shikimori=${anime.id}`;
                     btnKinobox.className = "bg-indigo-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg border border-indigo-500 shadow-md transition-all";
+                };
+            }
+
+            if (btnKodik) {
+                btnKodik.onclick = () => {
+                    resetButtons();
+                    // Стабильный плеер-шлюз под Kodik
+                    playerFrame.src = `https://player.asb.co/find-player?shikimori=${anime.id}`;
+                    btnKodik.className = "bg-indigo-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg border border-indigo-500 shadow-md transition-all";
                 };
             }
 
             if (btnCollaps) {
                 btnCollaps.onclick = () => {
                     resetButtons();
-                    playerFrame.src = `https://api.collaps.org/embed/shikimori/${anime.id}`;
+                    // Защищенное CDN-зеркало Collaps
+                    playerFrame.src = `https://baza-voron.ru/embed/shikimori/${anime.id}`;
                     btnCollaps.className = "bg-indigo-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg border border-indigo-500 shadow-md transition-all";
                 };
             }
