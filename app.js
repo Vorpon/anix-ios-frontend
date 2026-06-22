@@ -164,26 +164,70 @@ function applyFilters() {
     allAnime.forEach((anime, index) => createAnimeCard(anime, index));
 }
 
+/**
+ * Корректный запуск видеобалансера Kinobox
+ */
 function openPlayerModal(anime) {
     playerTitle.textContent = anime.russian || anime.name;
+    
+    // Очищаем контейнер плеера перед новым запуском
+    const playerContainer = document.getElementById('kinobox-player');
+    if (playerContainer) playerContainer.innerHTML = '';
+
+    // Показываем модальное окно
     modal.classList.remove('hidden');
     setTimeout(() => {
         modal.classList.remove('opacity-0');
         modal.querySelector('.transform').classList.remove('scale-95');
-    }, 10);
+        
+        try {
+            // Инициализируем Kinobox строго после того, как контейнер стал видимым
+            new kBox('#kinobox-player', {
+                search: { 
+                    shikimori: String(anime.id) 
+                },
+                ui: { 
+                    theme: 'dark' // Темная премиум-тема под наш дизайн
+                },
+                players: {
+                    // Включаем все доступные пиратские базы данных для максимальной заполненности
+                    kodik: { enable: true },
+                    vibix: { enable: true },
+                    alloha: { enable: true },
+                    collaps: { enable: true },
+                    tabus: { enable: true }
+                }
+            }).init();
+        } catch (e) {
+            console.error("Ошибка инициализации Kinobox:", e);
+            // Резервный вариант, если скрипт Kinobox заблокирован или упал
+            if (playerContainer) {
+                playerContainer.innerHTML = `
+                    <div class="w-full h-full flex flex-col items-center justify-center bg-zinc-950 p-6 text-center">
+                        <p class="text-red-400 font-bold text-sm">Внешний видеобалансер недоступен</p>
+                        <p class="text-xs text-zinc-500 mt-1 max-w-md">Попробуйте открыть плеер напрямую через базу Kodik или отключите защитные расширения браузера (AdBlock).</p>
+                        <a href="https://kodik.biz/find-player?shikimori=${anime.id}" target="_blank" class="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-4 py-2 rounded-xl font-bold transition-all">
+                            Смотреть на зеркале донора
+                        </a>
+                    </div>
+                `;
+            }
+        }
+    }, 50);
+    
     document.body.style.overflow = 'hidden';
-
-    new kBox('#kinobox-player', {
-        search: { shikimori: anime.id },
-        ui: { theme: 'dark' }
-    }).init();
 }
 
+/**
+ * Закрытие плеера с полной очисткой потоков (чтобы звук не шел на фоне)
+ */
 function closePlayerModal() {
     modal.classList.add('opacity-0');
     modal.querySelector('.transform').classList.add('scale-95');
+    
     setTimeout(() => {
-        document.getElementById('kinobox-player').innerHTML = '';
+        const playerContainer = document.getElementById('kinobox-player');
+        if (playerContainer) playerContainer.innerHTML = ''; // Жестко глушим видеопоток
         modal.classList.add('hidden');
         document.body.style.overflow = '';
     }, 300);
