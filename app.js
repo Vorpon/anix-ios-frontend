@@ -1,17 +1,11 @@
-﻿const API_URL = 'https://anix-backend-eight.vercel.app/api/shiki';
+﻿// ПРЯМОЙ СТАБИЛЬНЫЙ ИСТОЧНИК БАЗЫ ДАННЫХ
+const API_URL = 'https://shikimori.one/api/animes';
 const SHIKI_BASE = 'https://shikimori.one';
 
 const animeListContainer = document.getElementById('anime-list');
 const searchInput = document.getElementById('search-input');
-const genreFilterList = document.getElementById('genre-filter-list');
 const topTagsContainer = document.getElementById('top-tags');
 const featuredSection = document.getElementById('featured-section');
-
-// Новые фильтры (добавляем безопасную инициализацию)
-const sortFilter = document.getElementById('sort-filter');
-const groupBySelect = document.getElementById('group-by');
-const ratingMinInput = document.getElementById('rating-min');
-const ratingMaxInput = document.getElementById('rating-max');
 
 let allAnime = []; 
 let searchResults = [];
@@ -55,11 +49,14 @@ async function fetchAnime(searchQuery = '', isNewSearch = false) {
     }
 
     try {
-        let url = `${API_URL}?limit=${animePerPage}&page=${currentPage}`;
-        if (isSearchingMode) url += `&search=${encodeURIComponent(searchQuery)}`;
+        // Формируем чистый запрос к официальному API, который разрешен для всех фронтендов (без CORS ошибок)
+        let url = `${API_URL}?limit=${animePerPage}&page=${currentPage}&order=popularity`;
+        if (isSearchingMode) {
+            url = `${API_URL}?limit=${animePerPage}&page=${currentPage}&search=${encodeURIComponent(searchQuery)}`;
+        }
 
         const response = await fetch(url);
-        if (!response.ok) throw new Error('Ошибка бэкенда');
+        if (!response.ok) throw new Error('Ошибка получения данных с сервера');
         const newAnimeList = await response.json();
 
         const activePulseNodes = animeListContainer.querySelectorAll('.animate-pulse');
@@ -90,7 +87,7 @@ async function fetchAnime(searchQuery = '', isNewSearch = false) {
         const activePulseNodes = animeListContainer.querySelectorAll('.animate-pulse');
         activePulseNodes.forEach(n => n.remove());
         if (currentPage === 1) {
-            animeListContainer.innerHTML = '<div class="col-span-full text-center text-red-400 py-20">Ошибка загрузки базы данных.</div>';
+            animeListContainer.innerHTML = '<div class="col-span-full text-center text-red-400 py-20 font-medium">Ошибка загрузки базы данных. Нажмите Ctrl+F5 для принудительного обновления.</div>';
         }
     } finally {
         isLoading = false;
@@ -104,6 +101,7 @@ async function fetchAnime(searchQuery = '', isNewSearch = false) {
 }
 
 function createAnimeCard(anime, index) {
+    if (!anime || !anime.image) return;
     const posterUrl = `https://images.weserv.nl/?url=${encodeURIComponent(SHIKI_BASE + anime.image.original)}&w=300&q=80`;
     const card = document.createElement('div');
     card.className = 'flex flex-col group cursor-pointer animate-fade-in relative';
@@ -114,7 +112,7 @@ function createAnimeCard(anime, index) {
             <img src="${posterUrl}" alt="${anime.russian || anime.name}" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
             <div class="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent opacity-90"></div>
             <div class="absolute top-2.5 left-2.5 bg-black/80 backdrop-blur-md text-indigo-300 text-[10px] font-black px-2 py-0.5 rounded-lg border border-zinc-800">
-                ★ ${anime.score}
+                ★ ${anime.score || '0.0'}
             </div>
             <div class="p-3.5 z-10">
                 <p class="text-[9px] text-zinc-400 font-bold uppercase tracking-widest mb-0.5">${anime.kind ? anime.kind.toUpperCase() : 'TV'}</p>
@@ -131,7 +129,7 @@ function createAnimeCard(anime, index) {
 function renderFeaturedSection(list) {
     if (!featuredSection || !list.length) return;
     const topAnime = list.find(a => parseFloat(a.score) >= 8.0) || list[0];
-    if (!topAnime) return;
+    if (!topAnime || !topAnime.image) return;
     
     const posterUrl = `https://images.weserv.nl/?url=${encodeURIComponent(SHIKI_BASE + topAnime.image.original)}`;
     
@@ -153,12 +151,10 @@ function renderFeaturedSection(list) {
 
 function populateFilters(list) {
     if (!topTagsContainer || !list.length) return;
-    const genres = new Set();
-    list.forEach(a => {
-        if (a.genres) a.genres.forEach(g => genres.add(typeof g === 'string' ? g : g.name));
-    });
+    // В дефолтном списке API жанры отдаются строками или объектами
+    const genres = ['Экшен', 'Комедия', 'Фэнтези', 'Приключения', 'Драма', 'Романтика', 'Фантастика'];
     topTagsContainer.innerHTML = '';
-    Array.from(genres).slice(0, 8).forEach(g => {
+    genres.forEach(g => {
         topTagsContainer.insertAdjacentHTML('beforeend', `<button class="filter-chip bg-zinc-900 border border-zinc-800 text-zinc-400 px-3 py-1.5 rounded-xl text-xs font-medium hover:border-zinc-700 transition-all" data-value="${g}">${g}</button>`);
     });
 }
@@ -191,14 +187,5 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     window.addEventListener('scroll', handleScroll);
-
-    // БЕЗОПАСНАЯ ИНИЦИАЛИЗАЦИЯ: Добавляем слушатели только если элементы реально существуют в HTML
-    [sortFilter, groupBySelect, ratingMinInput, ratingMaxInput].forEach(el => {
-        if (el) {
-            el.addEventListener('change', applyFilters);
-            el.addEventListener('input', applyFilters);
-        }
-    });
-
     fetchAnime('', true);
 });
