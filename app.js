@@ -7,6 +7,12 @@ const genreFilterList = document.getElementById('genre-filter-list');
 const topTagsContainer = document.getElementById('top-tags');
 const featuredSection = document.getElementById('featured-section');
 
+// Новые фильтры (добавляем безопасную инициализацию)
+const sortFilter = document.getElementById('sort-filter');
+const groupBySelect = document.getElementById('group-by');
+const ratingMinInput = document.getElementById('rating-min');
+const ratingMaxInput = document.getElementById('rating-max');
+
 let allAnime = []; 
 let searchResults = [];
 let isSearchingMode = false;
@@ -69,7 +75,6 @@ async function fetchAnime(searchQuery = '', isNewSearch = false) {
         } else {
             if (currentPage === 1) {
                 allAnime = newAnimeList;
-                // Сохраняем кэш для страницы деталей
                 sessionStorage.setItem('anix_allAnime', JSON.stringify(allAnime));
                 populateFilters(allAnime);
                 renderFeaturedSection(allAnime);
@@ -186,5 +191,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     window.addEventListener('scroll', handleScroll);
+
+    // БЕЗОПАСНАЯ ИНИЦИАЛИЗАЦИЯ: Добавляем слушатели только если элементы реально существуют в HTML
+    [sortFilter, groupBySelect, ratingMinInput, ratingMaxInput].forEach(el => {
+        if (el) {
+            el.addEventListener('change', applyFilters);
+            el.addEventListener('input', applyFilters);
+        }
+    });
+
     fetchAnime('', true);
 });
