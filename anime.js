@@ -144,25 +144,29 @@ async function init() {
     // Мы генерируем защищенный iframe, использующий глобальную базу доноров Kodik. 
     // Он работает напрямую без подгрузки внешних скриптов и не боится блокировки домена kinobox.
    // ИНТЕГРАЦИЯ НА ОСНОВЕ НАЙДЕННОГО РЕПОЗИТОРИЯ
+    // УМНЫЙ МУЛЬТИПЛЕЕР (Kodik + Автопереключение на Collaps при ошибке 451)
     const playerContainer = document.getElementById('kinobox-player');
     if (playerContainer) {
-        playerContainer.innerHTML = '<div class="text-center text-zinc-500 py-12 animate-pulse">Поиск видеопотоков...</div>';
+        playerContainer.innerHTML = '<div class="text-center text-zinc-500 py-12 animate-pulse">Поиск доступных видеопотоков...</div>';
 
         try {
-            // Стучимся на наш бэкенд за прямыми ссылками
+            // 1. Пробуем получить ссылку на Kodik через наш бэкенд
             const res = await fetch(`https://anix-backend-eight.vercel.app/api/video?shikimori=${anime.id}`);
-            if (!res.ok) throw new Error('Видео не найдено в базе');
+            
+            if (!res.ok) throw new Error('Kodik не ответил');
             
             const videoData = await res.json();
-            
-            // Берем первый доступный перевод и его линк
             const targetVideo = videoData[0];
-            const videoUrl = targetVideo.link; // Прямая ссылка на незаблокированный плеер-поток
+            
+            // Если ссылка содержит признаки блокировки или пустая, кидаем ошибку для перехода на резерв
+            if (!targetVideo || !targetVideo.link) {
+                throw new Error('Блокировка правообладателя');
+            }
 
-            // Встраиваем защищенную ссылку
+            // Если всё ок, встраиваем Kodik
             playerContainer.innerHTML = `
                 <iframe 
-                    src="${videoUrl}" 
+                    src="${targetVideo.link}" 
                     width="100%" 
                     height="100%" 
                     frameborder="0" 
@@ -171,13 +175,22 @@ async function init() {
                     style="background: #000;"
                 ></iframe>
             `;
+
         } catch (err) {
-            console.error(err);
+            console.warn("Kodik недоступен или заблокирован (451). Включаем резервный балансер Collaps...", err);
+            
+            // 2. РЕЗЕРВНЫЙ ПЛАН: Если Kodik выдал 451 или упал, мгновенно включаем базу Collaps,
+            // которая плевать хотела на эти блокировки и выдаст серии без VPN.
             playerContainer.innerHTML = `
-                <div class="w-full h-full flex flex-col items-center justify-center bg-zinc-950 p-6 text-center text-xs text-zinc-500">
-                    <p class="text-red-400 font-bold mb-2">Видео временно недоступно для этого тайтла</p>
-                    <p>Попробуйте позже или выберите другой релиз.</p>
-                </div>
+                <iframe 
+                    src="https://api.collaps.org/embed/shikimori/${anime.id}" 
+                    width="100%" 
+                    height="100%" 
+                    frameborder="0" 
+                    allowfullscreen 
+                    class="w-full h-full rounded-2xl"
+                    style="background: #000;"
+                ></iframe>
             `;
         }
     }
