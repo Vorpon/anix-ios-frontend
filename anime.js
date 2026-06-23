@@ -19,7 +19,7 @@ function renderDetail(anime) {
     if (titleRu) titleRu.textContent = anime.russian || anime.name;
     if (titleOrig) titleOrig.textContent = anime.name;
     if (animeYear) animeYear.textContent = anime.aired_on ? anime.aired_on.split('-')[0] : 'Неизвестно';
-    if (animeEpisodes) animeEpisodes.textContent = anime.episodes ? `${anime.episodes} сер.` : 'Вонгоинг';
+    if (animeEpisodes) animeEpisodes.textContent = anime.episodes ? `${anime.episodes} сер.` : 'Онгоинг';
     if (animeScore) animeScore.textContent = `★ ${anime.score || '0.0'}`;
 
     if (animePoster && anime.image) {
@@ -32,7 +32,7 @@ function renderDetail(anime) {
         ).join('');
     }
 
-// СТАБИЛЬНЫЙ МУЛЬТИПЛЕЕР ЧЕРЕЗ API KINOBOX И ЗЕРКАЛА
+    // ИНИЦИАЛИЗАЦИЯ МУЛЬТИПЛЕЕРА
     const playerContainer = document.getElementById('kinobox-player');
     if (playerContainer) {
         playerContainer.innerHTML = `
@@ -58,12 +58,11 @@ function renderDetail(anime) {
             });
         };
 
-        // Функция для загрузки Kinobox через официальный веб-скрипт (без багов iframe)
+        // Загрузка Kinobox через их официальный JS-скрипт (защита от Invalid URL)
         const loadKinobox = () => {
             if (!viewRoot) return;
-            viewRoot.innerHTML = `<div class="kinobox_player"></div>`;
+            viewRoot.innerHTML = `<div class="kinobox_player w-full h-full"></div>`;
             
-            // Удаляем старый скрипт, если он был, и создаем новый
             const oldScript = document.getElementById('kinobox-js');
             if (oldScript) oldScript.remove();
 
@@ -82,7 +81,7 @@ function renderDetail(anime) {
             document.body.appendChild(script);
         };
 
-        // По умолчанию загружаем надежный Kinobox
+        // По умолчанию сразу стартуем Kinobox через скрипт
         loadKinobox();
 
         if (viewRoot) {
@@ -117,7 +116,7 @@ function renderDetail(anime) {
             }
         }
     }
-}// Вот эта закрывающая скобка для функции renderDetail терялась!
+}
 
 async function init() {
     const params = new URLSearchParams(window.location.search);
